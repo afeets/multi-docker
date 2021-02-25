@@ -1,0 +1,27 @@
+language: generic
+
+sudo: required
+
+services:
+  - docker
+
+before_install:
+  - docker build -t andyfeetenby/react-test -f ./client/Dockerfile.dev ./client
+
+script:
+  - docker run -e CI=true andyfeetenby/react-test npm run test -- --coverage
+
+after_success:
+  - docker build -t andyfeetenby/multi-api ./api
+  - docker build -t andyfeetenby/multi-nginx ./nginx
+  - docker build -t andyfeetenby/multi-worker ./worker
+  - docker build -t andyfeetenby/multi-client ./client
+
+  # Login to docker CLI, retrieve ENV VARIABLES from TravisCI 
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+
+  # Take images and push to DockerHub
+  - docker push andyfeetenby/multi-api
+  - docker push andyfeetenby/multi-nginx
+  - docker push andyfeetenby/multi-worker
+  - docker push andyfeetenby/multi-client
