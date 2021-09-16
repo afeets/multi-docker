@@ -29,7 +29,7 @@ before_install:
 
 # define how to run tests for project  
 script:
-  - docker run -e CI=true USERNAME/react-test npm test
+  - docker run -e CI=true andyfeetenby/react-test npm test
 
 deploy:
   provider: script
