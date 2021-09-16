@@ -4,6 +4,12 @@ branches:
     - gcp-k8s
 services:
   - docker
+env:
+  global:
+    # get SHA from latest version
+    - GIT_SHA=$(git rev-parse HEAD)
+    # configure Google CLI to disable prompts during install
+    - CLOUDSDK_CORE_DISABLE_PROMPTS=1
 before_install:
   # unencrypt json with service account credentials
   - openssl aes-256-cbc -K $encrypted_9f3b5599b056_key -iv $encrypted_9f3b5599b056_iv -in service-account.json.enc -out service-account.json -d
@@ -12,5 +18,22 @@ before_install:
   - source $HOME/google-cloud-sdk/path.bash.inc
   # install kubectl
   - gcloud components update kubectl
-  # tell google who we are
+  # tell google who we are, and where to work
   - gcloud auth activate-service-account --key-file service-account.json
+  - gcloud config set project multi-k8s-326214
+  - gcloud config set compute/zone asia-southeast1-a
+  # tell google what cluster to work with
+  - gcloud container clusters get-credentials multi-cluster
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+  - docker build -t andyfeetenby/react-test -f ./client/Dockerfile.dev ./client
+
+# define how to run tests for project  
+script:
+  - docker run -e CI=true USERNAME/react-test npm test
+
+deploy:
+  provider: script
+  # run custom script, building images, tagging and pushing to dockerhub
+  script: bash ./deploy.sh
+  on:
+    branch: gcp-k8s
